@@ -65,7 +65,7 @@ CDataQueue<DataType, DataContainer, LOCK>::CDataQueue(CDataQueue<DataType, DataC
 template <typename DataType, typename DataContainer, typename LOCK>
 CDataQueue<DataType, DataContainer, LOCK>::CDataQueue()
 {
-
+	m_data_lock.reset(new(std::nothrow)LOCK());
 }
 
 template <typename DataType, typename DataContainer, typename LOCK>

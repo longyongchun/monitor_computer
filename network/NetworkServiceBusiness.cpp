@@ -39,10 +39,9 @@ unsigned int CNetworkServiceBusiness::init()
 		unsigned int result = m_net_service->init();
 		if (result != 0xffffffff)
 		{
-			m_net_service->connect("127.0.0.1", 1314);
-			if (0xffffffff == THREAD_POOL->create_thread_node_mgr(m_node_mgr_tag.c_str()))
+			if (0xffffffff != (result = THREAD_POOL->create_thread_node_mgr(m_node_mgr_tag.c_str())))
 			{
-				THREAD_POOL->create_thread_node(m_node_mgr_tag.c_str(), m_node_tag.c_str(), 1);
+				result = THREAD_POOL->create_thread_node(m_node_mgr_tag.c_str(), m_node_tag.c_str(), 1);
 			}
 		}
 		return result;
@@ -57,7 +56,7 @@ unsigned int CNetworkServiceBusiness::start()
 		unsigned int result = m_net_service->start();
 		if (result != 0xffffffff)
 		{
-			unsigned int conn_id = m_net_service->connect("127.0.0.1", 1314);
+			unsigned int conn_id = m_net_service->connect("127.0.0.1", 13140);
 			if (conn_id != 0xffffffff)
 			{
 				this->register_send_data_task(conn_id);

@@ -39,6 +39,8 @@ private:
 	const char* build_log_record(const char* format, va_list& argptr);
 
 	bool open_file();
+	bool write_file(const char* log_context);
+	bool close_file();
 
 private:
 	boost::shared_mutex    m_log_pack_shared_mutex;

@@ -42,20 +42,21 @@ CNetworkService::~CNetworkService()
 
 unsigned int CNetworkService::init()
 {
+	unsigned int result = -1;
 	if (THREAD_POOL->create_thread_node_mgr(m_node_mgr_tag.c_str()) != 0xffffffff)
 	{//创建线程节点管理成功
 		if (THREAD_POOL->create_thread_node(m_node_mgr_tag.c_str(), m_node_tag.c_str(), 5) != 0xffffffff)
 		{//创建5个线程的节点成功 其中4个线程用来处理网络包 1个线程负责发送网络包
-			return 0;
+			result = 0;
 		}
 
-		if (THREAD_POOL->create_thread_node(m_node_mgr_tag.c_str(), m_send_data_tag.c_str(), m_send_data_threads) != 0xffffffff)
+		if (result == 0 && THREAD_POOL->create_thread_node(m_node_mgr_tag.c_str(), m_send_data_tag.c_str(), m_send_data_threads) != 0xffffffff)
 		{//10个线程处理发送数据
-			return 0;
+			result = 0;
 		}
 	}
 
-	return -1;
+	return result;
 }
 
 unsigned int CNetworkService::start()

@@ -62,11 +62,43 @@ unsigned int CLogSystem::write(const char* log_context)
 	{
 		return -1;
 	}
-	if (m_log_pack.m_log_fp == nullptr)
-	{//打开文件
-		
+	if (m_log_pack.m_log_fp == nullptr && !this->open_file())
+	{//打开文件失败 直接返回
+		return -1;
 	}
+	
+	if (!this->write_file(log_context))
+	{//写日志记录失败 关闭文件 下次重新打开
+		this->close_file();
+		return -1;
+	}
+
 	return 0;
+}
+
+
+bool CLogSystem::close_file()
+{
+	boost::unique_lock<boost::shared_mutex> write_lock(m_log_pack_shared_mutex);
+	if (m_log_pack.m_log_fp == nullptr)
+	{
+		return true;
+	}
+	bool result = ::fclose(m_log_pack.m_log_fp) != EOF;
+	m_log_pack.m_log_fp = nullptr;
+
+	return result;
+}
+
+//写文件
+bool CLogSystem::write_file(const char* log_context)
+{
+	boost::shared_lock<boost::shared_mutex> read_lock(m_log_pack_shared_mutex);
+	if (::fwrite(log_context, strlen(log_context), 1, m_log_pack.m_log_fp) != 1)
+	{
+		return false;
+	}
+	return true;
 }
 
 bool CLogSystem::open_file()
@@ -77,7 +109,24 @@ bool CLogSystem::open_file()
 		return true;
 	}
 	boost::filesystem::path log_path(m_log_pack.m_log_path);
-	std::string log_file_name = 	
+	std::string log_file_name = m_log_pack.m_log_file_prex;
+	//获取当前日期
+	time_t curr_time = time(NULL);
+	struct tm curr_tm = {0};
+	if (::localtime_r(&curr_time, &curr_tm) == nullptr)
+	{//格式化时间出错
+		return false;
+	}
+	char buf[32] = {0};
+	snprintf(buf, sizeof(buf), "%04d%02d%02d%02d%02d%02d.txt", curr_tm.tm_year + 1900, curr_tm.tm_mon + 1, curr_tm.tm_mday,
+				curr_tm.tm_hour, curr_tm.tm_min, curr_tm.tm_sec);
+	log_file_name += buf;
+	log_path /= log_file_name;
+
+	m_log_pack.m_log_fp = fopen(log_path.string().c_str(), "a+");
+	
+	return m_log_pack.m_log_fp != nullptr;
+}
 
 const char* CLogSystem::build_log_record(const char* format, va_list& argptr)
 {

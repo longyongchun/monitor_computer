@@ -3,7 +3,7 @@ src_file = $(shell find ${src_dir} -name "*.cpp")
 objects  = $(src_file:%.cpp=%.o)
 
 CXX = g++
-CXXFLAGS = -g -std=c++11 -pthread -lboost_thread -lboost_system
+CXXFLAGS = -g -std=c++11 -pthread -lboost_thread -lboost_filesystem -lboost_system
 
 main : $(objects)
 	$(CXX) $(objects) -omain $(CXXFLAGS)
