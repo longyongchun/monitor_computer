@@ -22,6 +22,7 @@
 #include <list>
 
 class INetworkService;
+struct MonitorDataPack;
 
 class CNetworkServiceBusiness : public IBusiness
 {
@@ -35,6 +36,9 @@ public:
 
 private:
 	int register_send_data_task(unsigned int conn_id);
+	int send_data_task(unsigned int conn_id);
+
+	int build_monitor_network_data(char* buf, unsigned int buf_len, const std::shared_ptr<MonitorDataPack>& data_pack)const;	
 
 private:
 	std::shared_ptr<INetworkService> m_net_service;

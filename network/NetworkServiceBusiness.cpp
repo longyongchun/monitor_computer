@@ -19,6 +19,8 @@
 #include <thread>
 #include "../thread_pool/ThreadPoolFactory.h"
 #include "../thread_pool/ThreadPool.h"
+#include "../data_queue/MonitorFileSystemDataQueue.h"
+#include "../NetworkPack.h"
 
 CNetworkServiceBusiness::CNetworkServiceBusiness()
 		:m_node_mgr_tag("Network_Business_Node_Mgr"),
@@ -79,9 +81,12 @@ int CNetworkServiceBusiness::register_send_data_task(unsigned int conn_id)
 	{
 		while (true)
 		{
+			while (this->send_data_task(conn_id) == 0)
+			{
+				;
+			}
+			//任务发送完毕 睡一秒
 			std::this_thread::sleep_for(std::chrono::seconds(1));
-			std::cout << "hello " << std::endl;
-			m_net_service->send_data(conn_id, "hello", strlen("hello"));		
 		}
 	};
 
@@ -90,4 +95,56 @@ int CNetworkServiceBusiness::register_send_data_task(unsigned int conn_id)
 	return 0;
 }
 	
+
+int CNetworkServiceBusiness::send_data_task(unsigned int conn_id)
+{
+	int result = -1;
+	std::shared_ptr<MonitorDataPack> mon_pack;
+	if (MONITOR_DATA_QUEUE->pop_network_pack(mon_pack))
+	{
+		if (mon_pack)
+		{//获取包成功
+			result = 0;
+			char network_data[1024] = {0};
+			int network_data_len = this->build_monitor_network_data(network_data, sizeof(network_data), mon_pack);
+			if (network_data_len >= sizeof(NetworkHeadPack))
+			{//发送的数据最小单位为一个包头
+				m_net_service->send_data(conn_id, network_data, network_data_len);
+			}
+		}
+	}
+	return result;
+}
+
+
+int CNetworkServiceBusiness::build_monitor_network_data(char* buf, unsigned int buf_len, const std::shared_ptr<MonitorDataPack>& data_pack)const
+{
+	if (data_pack)
+	{
+		if (data_pack->m_head.m_total_len + sizeof(NetworkHeadPack) > buf_len)
+		{
+			return 0;
+		}
+		//总长度
+		*((unsigned int*)buf) = data_pack->m_head.m_total_len + sizeof(NetworkHeadPack);
+		buf += sizeof(unsigned int);
+		//网络事件
+		*((unsigned int*)buf) = 0;
+		buf += sizeof(unsigned int);
+		//序号
+		*((unsigned int*)buf) = 0;
+		buf += sizeof(unsigned int);
+		//监控包
+		memmove(buf, (void*)data_pack.get(), data_pack->m_head.m_total_len);
+	}
+
+	return data_pack->m_head.m_total_len + sizeof(NetworkHeadPack);
+}
+
+
+
+
+
+
+
 
