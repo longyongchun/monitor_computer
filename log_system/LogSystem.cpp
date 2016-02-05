@@ -21,6 +21,11 @@
 #include <mutex>
 #include <boost/filesystem.hpp>
 
+ILogSystem* get_log_system_instance()
+{
+	return CLogSystem::get_instance();
+}
+
 ILogSystem* CLogSystem::m_log_system = nullptr;
 
 ILogSystem* CLogSystem::get_instance()
@@ -44,6 +49,8 @@ CLogSystem::CLogSystem()
 {
 	m_vec_buffer.resize(4096);
 	m_log_pack.m_log_fp = nullptr;
+	m_log_pack.m_log_path = "/home/code/src";
+	m_log_pack.m_log_file_prex = "monitor";
 }
 
 CLogSystem::~CLogSystem()

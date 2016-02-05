@@ -14,9 +14,10 @@
 ///
 /// ****************************************************************************
 #include "Business.h"
-
+#include "log_system/LogManagerSystem.h"
 int main()
 {
+	WRITE_ERROR("this is a %s", "test");
 	CBusiness business;
 	if (business.init() != 0xffffffff)
 	{

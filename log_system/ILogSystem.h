@@ -1,18 +1,3 @@
-/// ****************************************************************************
-///
-/// ****************************************************************************
-///
-/// @file           ILogSystem.h
-/// @brief          
-/// @attention
-/// @todo
-/// @version        1.0v
-/// @author         longyongchun
-/// @date           2016/01/13
-/// @note
-/// <author>        <time>          <version >          <desc> \n
-///
-/// ****************************************************************************
 
 
 #ifndef ILOG_SYSTEM_HPP__
@@ -27,6 +12,8 @@ public:
 	virtual unsigned int init() = 0;
 	virtual unsigned int write(const char* log_context) = 0;
 };
+
+ILogSystem* get_log_system_instance();
 
 
 #endif
