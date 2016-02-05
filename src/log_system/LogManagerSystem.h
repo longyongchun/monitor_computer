@@ -21,7 +21,6 @@
 #include <cstdio>
 #include "LogSystem.h"
 #include <ctime>
-#include <stdarg.h>
 #define WRITE_LOG(level, format, args...)\
 {\
 	char szbuf[2048] = {0};\
@@ -35,7 +34,7 @@
 		if (nullptr != localtime_r((time_t*)&tmval.tv_sec, &curr_tm))\
 		{\
 			int len = snprintf(tmp, sizeof(szbuf) - (tmp - szbuf), \
-						"[%04d-%02d-%02d %02d:%02d:%02d:%06d]", curr_tm.tm_year + 1900, curr_tm.tm_mon + 1, curr_tm.tm_yday, curr_tm.tm_hour,\
+						"[%04d-%02d-%02d %02d:%02d:%02d:%06l]", curr_tm.tm_year + 1900, curr_tm.tm_mon + 1, curr_tm.tm_yday, curr_tm.tm_hour,\
 						curr_tm.tm_min, curr_tm.tm_sec, tmval.tv_usec); \
 			tmp += len;\
 		}\
@@ -43,14 +42,11 @@
 	/*2. 添加文件名与文件行数*/\
    	int len = snprintf(tmp, sizeof(szbuf) - (tmp - szbuf), "[filename: %s][line: %d]", __FILE__, __LINE__);\
    	tmp += len;\
-	/*3. 添加日志等级*/\
+	/*3. 添加日志等级*/ \
 	len = snprintf(tmp, sizeof(szbuf) - (tmp - szbuf), "[level: %s] ", level);\
 	tmp += len;\
-	/*4. 组装日志内容*/\
-	va_list argptr;\
-	va_start(argptr, format);\
-	vsnprintf(tmp, sizeof(szbuf) - (tmp - szbuf), format, argptr);\
-	va_end(argptr);\
+	/*4. 组装日志内容*/ \
+	snprintf(tmp, sizeof(szbuf) - (tmp - szbuf), format, args);\
 	get_log_system_instance()->write(szbuf);\
 }\
 

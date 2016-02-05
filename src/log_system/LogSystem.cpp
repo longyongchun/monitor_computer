@@ -105,6 +105,8 @@ bool CLogSystem::write_file(const char* log_context)
 	{
 		return false;
 	}
+	//实时刷日志
+	::fflush(m_log_pack.m_log_fp);
 	return true;
 }
 

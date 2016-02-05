@@ -110,22 +110,19 @@ bool CIniFileParse::is_comment(const std::string& line_data)const
 
 bool CIniFileParse::get_section(const std::string& line_data, std::string& section)const
 {
-	std::cout << "ehllo" << std::endl;
-	static const std::regex pattern("^\\[([a-z0-9A-Z ]*)\\]$", std::regex_constants::egrep);
-	std::cout << "good" << std::endl;
+	static const std::regex pattern("\\[([\\w\\s]*)\\]");
 	std::cmatch result;
 	bool search_result = std::regex_search(line_data.c_str(), result, pattern);
 	if (search_result)
 	{//匹配成功
 		section = std::string(result[1].first, result[1].second);
-		std::cout << section << std::endl;
 	}
 	return search_result;
 }
 
 bool CIniFileParse::get_key_value(const std::string& line_data, std::string& key, std::string& value)const
 {
-	static const std::regex pattern("^(\\w*)\\s*=\\s*(\\w*)$");
+	static const std::regex pattern("(\\w*)\\s*=\\s*(\\w*)");
 	std::cmatch result;
 	bool search_result = std::regex_search(line_data.c_str(), result, pattern);
 	if (search_result)
@@ -175,11 +172,11 @@ bool CIniFileParse::print_file(FILE* fp)
 }
 
 
-/*int main()
-{
-	std::string line_data = "[good morning]";
+//int main()
+//{
+	/*std::string line_data = "[good morning]";
 	std::string section;
-	std::regex pattern("^\\\\[([a-z0-9A-Z ]*)\\\\]$");
+	std::regex pattern("^\\[([a-z0-9A-Z ]*)\\]$");
 	std::cout << "good" << std::endl;
 	std::cmatch result;
 	bool search_result = std::regex_search(line_data.c_str(), result, pattern);
@@ -188,13 +185,13 @@ bool CIniFileParse::print_file(FILE* fp)
 		section = std::string(result[1].first, result[1].second);
 		std::cout << section << std::endl;
 	}
-	return search_result;
-	CIniFileParse ini;
-	ini.load_file("test.txt");
-	FILE* fp = fdopen(2, "w");
-	ini.print_file(fp);
-	return 0;
-}*/
+	return search_result;*/
+//	CIniFileParse ini;
+//	ini.load_file("/home/code/src/github/monitor_computer/config/monitor.ini");
+//	FILE* fp = fdopen(2, "w");
+//	ini.print_file(fp);
+//	return 0;
+//}
 
 
 

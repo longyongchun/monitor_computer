@@ -18,7 +18,7 @@
 #include <chrono>
 #include "MonitorFileSystemBusiness.h"
 #include "network/NetworkServiceBusiness.h"
-
+#include "config/GolabConfig.h"
 CBusiness::CBusiness()
 {
 
@@ -31,6 +31,10 @@ CBusiness::~CBusiness()
 
 unsigned int CBusiness::init()
 {
+	//初始化全局配置
+	GOLAB_CONFIG->init();
+	
+
 	IBusiness* business = nullptr;
 	//本地监控业务
 	business = new (std::nothrow)CMonitorFileSystemBusiness();
