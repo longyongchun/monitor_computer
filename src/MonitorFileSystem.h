@@ -74,7 +74,7 @@ protected:
 	 *
 	 * @param fd
 	 */
-	void process_fd_data(int fd);
+	bool process_fd_data(int fd);
 
 	/**
 	 * @brief  构建网络数据包
@@ -179,6 +179,7 @@ int CMonitorFileSystem::read_dir(const std::string& full_path, FUNC fun)
 			++file_count;
 		}
 	}
+	closedir(pdir);
 	return file_count;
 }
 

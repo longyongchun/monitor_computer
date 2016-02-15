@@ -34,7 +34,7 @@
 		if (nullptr != localtime_r((time_t*)&tmval.tv_sec, &curr_tm))\
 		{\
 			int len = snprintf(tmp, sizeof(szbuf) - (tmp - szbuf), \
-						"[%04d-%02d-%02d %02d:%02d:%02d:%06l]", curr_tm.tm_year + 1900, curr_tm.tm_mon + 1, curr_tm.tm_yday, curr_tm.tm_hour,\
+						"[%04d-%02d-%02d %02d:%02d:%02d:%06d]", curr_tm.tm_year + 1900, curr_tm.tm_mon + 1, curr_tm.tm_yday, curr_tm.tm_hour,\
 						curr_tm.tm_min, curr_tm.tm_sec, tmval.tv_usec); \
 			tmp += len;\
 		}\
@@ -46,21 +46,23 @@
 	len = snprintf(tmp, sizeof(szbuf) - (tmp - szbuf), "[level: %s] ", level);\
 	tmp += len;\
 	/*4. 组装日志内容*/ \
-	snprintf(tmp, sizeof(szbuf) - (tmp - szbuf), format, args);\
+	len = snprintf(tmp, sizeof(szbuf) - (tmp - szbuf), format, ##args);\
+	tmp += len;\
+	*tmp = '\n';\
 	get_log_system_instance()->write(szbuf);\
 }\
 
-#define WRITE_INFO(format, args...)\
+#define WRITE_INFO_LOG(format, args...)\
 {\
 	WRITE_LOG("INFO", format, ##args);\
 }\
 
-#define WRITE_ERROR(format, args...)\
+#define WRITE_ERROR_LOG(format, args...)\
 {\
 	WRITE_LOG("ERROR", format, ##args);\
 }\
 
-#define WRITE_DEBUG(format, args...)\
+#define WRITE_DEBUG_LOG(format, args...)\
 {\
 	WRITE_LOG("DEBUG", format, ##args);\
 }\

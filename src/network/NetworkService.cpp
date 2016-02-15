@@ -24,6 +24,9 @@
 #include <mutex>
 #include <future>
 #include <functional>
+#include <errno.h>
+#include <string.h>
+#include "../log_system/LogManagerSystem.h"
 #include "../thread_pool/ThreadPool.h"
 
 CNetworkService::CNetworkService()
@@ -126,6 +129,7 @@ int CNetworkService::start_network_service()
 		//休息1秒在尝试创建epoll
 		std::this_thread::sleep_for(std::chrono::seconds(1));
 		//todo 打印失败日志
+	    WRITE_ERROR_LOG("epoll_create创建时失败,错误信息[%s]!", strerror(errno));	
 		epfd = epoll_create(10000);
 	}
 
@@ -134,11 +138,13 @@ int CNetworkService::start_network_service()
 		if (this->process_network_fd(epfd) < 0)
 		{
 			//todo 打印日志
+			WRITE_ERROR_LOG("处理网络事件失败!!!");
 		}
 		//加入或删除网络套接字失败，并不影响后续的处理 继续监控事件
 		if (this->wait_and_process_network_event(epfd) < 0)
 		{
 			//todo 打印日志
+			WRITE_ERROR_LOG("处理套监控套接字失败!!!");
 		}
 	}
 
@@ -458,12 +464,33 @@ int CNetworkService::send_network_data(unsigned int queue_id)
 		}
 		if (sock_fd != -1)
 		{//发送数据
-			unsigned data_len = data_pack.m_data_buf.size();
-			if (write(sock_fd, data_pack.m_data_buf.c_str(), data_len) == data_len)
-			{//发送数据失败
-				return 0;
+			unsigned int data_len = data_pack.m_data_buf.size();
+			
+			unsigned int send_len = 0;
+			const char* buf = data_pack.m_data_buf.c_str();
+			//将数据全部发送出去
+			while (send_len < data_len)
+			{
+
+				int len = write(sock_fd, buf, data_len - send_len);
+				if (len < 0)
+				{
+					if (errno == EINTR)
+					{//被信号中断 继续发送数据
+						continue;
+					}
+					if (errno == EAGAIN || errno == EWOULDBLOCK)
+					{//继续写数据将会被阻塞
+						continue;
+					}
+					//套接字发送错误
+					WRITE_ERROR_LOG("写套接字时出现错误!,错误内容[%s]", strerror(errno));
+					return -1;
+				}
+				send_len += len;
+				buf += len;
 			}
-			return -1;
+			return 0;
 		}
 	}
 	return -1;

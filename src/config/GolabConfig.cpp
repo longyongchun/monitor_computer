@@ -48,6 +48,27 @@ unsigned int CGolabConfig::init()
 {
 	if (m_monitor_ini_file.load_file("config/monitor.ini"))
 	{
+		
+		//获取日志配置信息
+		m_monitor_ini_file.get_item_value("LOG_CONFIG", "log_path", log_info_cfg.m_log_path); 
+		m_monitor_ini_file.get_item_value("LOG_CONFIG", "log_pre", log_info_cfg.m_log_pre); 
+	
+		//获取监控路径
+		std::string path_value;
+		int idx = 0;
+		char key[32] = {0};
+		do
+		{
+			++idx;
+			snprintf(key, sizeof(key), "mon_path%d", idx);
+			if (m_monitor_ini_file.get_item_value("MONITOR_PATH", key, path_value))
+			{
+				m_mon_path_list.push_front(std::move(path_value));
+				continue;
+			}
+			break;
+		}while(true);
+
 		FILE* fp_screen = fdopen(2, "w");
 		m_monitor_ini_file.print_file(fp_screen);
 		if (fp_screen != nullptr)

@@ -16,6 +16,7 @@
 
 #include "MonitorFileSystemBusiness.h"
 #include "MonitorFileSystem.h"
+#include "config/GolabConfig.h"
 
 CMonitorFileSystemBusiness::CMonitorFileSystemBusiness()
 {
@@ -42,12 +43,17 @@ unsigned int CMonitorFileSystemBusiness::init()
 	}
 	return -1;
 }
-
+#include <iostream>
 unsigned int CMonitorFileSystemBusiness::start()
 {
 	if (m_file_system)
 	{
-		m_file_system->add_monitor_node("/home/code/src/lyc/", true);
+		std::list<std::string>& path_list = GOLAB_CONFIG->m_mon_path_list;
+		for (auto& mon_path : path_list)
+		{
+ 			m_file_system->add_monitor_node(mon_path.c_str(), true);
+			std::cout << mon_path << std::endl;
+		}	
 		return 0;
 	}
 	return -1;

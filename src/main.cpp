@@ -17,7 +17,7 @@
 #include "log_system/LogManagerSystem.h"
 int main()
 {
-	WRITE_ERROR("this is a %s", "test");
+	WRITE_ERROR_LOG("this is a %s", "test");
 	CBusiness business;
 	if (business.init() != 0xffffffff)
 	{

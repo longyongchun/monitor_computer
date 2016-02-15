@@ -1,3 +1,4 @@
+
 // ****************************************************************************
 ///
 /// ****************************************************************************
@@ -18,6 +19,7 @@
 #include "file_node/DirectoryNode.h"
 #include "MonitorFileNodeManager.h"
 #include "NetworkPack.h"
+#include <unistd.h>
 #include <sys/inotify.h>
 #include <stack>
 #include <vector>
@@ -35,6 +37,9 @@
 #include "thread_pool/ThreadPool.h"
 #include "data_queue/MonitorFileSystemDataQueue.h"
 #include <future>
+#include "log_system/LogManagerSystem.h"
+#include <errno.h>
+#include <string.h>
 CMonitorFileSystem::CMonitorFileSystem()
 {
 	m_node_mgr_ptr.reset(new(std::nothrow)CMonitorFileNodeManager());
@@ -91,19 +96,24 @@ MonitorStatus CMonitorFileSystem::add_monitor_node(const char* path, bool is_rec
 	{
 		if (path == nullptr)
 		{
+			WRITE_ERROR_LOG("监控路径为空!!!");
 			mon_status = MonitorStatus::EN_MONITOR_ERROR;
 			break;
 		}
+		WRITE_INFO_LOG("正在增加监控路径[%s]", path);
+
 		m_inotify_set.insert(std::string(path));
 		if (!FILE_SYSTEM_POINTER->file_exists(path))
 		{//文件或目录不存在
 			m_invalid_inotify_set.insert(std::string(path));
+			WRITE_ERROR_LOG("监控的路径[%s]不存在", path);
 			break;
 		}
 		int fd = this->create_notify_fd();
 		if (fd < 0)
 		{
 			mon_status = MonitorStatus::EN_MONITOR_ERROR;
+			WRITE_ERROR_LOG("创建通知句柄失败,错误信息[%s]", strerror(errno));
 			break;
 		}
 
@@ -147,6 +157,7 @@ MonitorStatus CMonitorFileSystem::exe_watch_file_node(int fd, const char* name, 
 		if (name == nullptr)
 		{
 			mon_status = MonitorStatus::EN_MONITOR_ERROR;
+			WRITE_ERROR_LOG("监控路径为空!!!");
 			break;
 		}
 		
@@ -204,6 +215,11 @@ int CMonitorFileSystem::add_watch(int fd, const std::string& full_path, int pare
 
 	int wd = inotify_add_watch(fd, full_path.c_str(), IN_ALL_EVENTS);
 	
+	if (wd < 0)
+	{
+		WRITE_ERROR_LOG("创建监控句柄失败, 监控路径[%s], 错误信息[%s]", full_path.c_str(), strerror(errno));
+	}
+
 	if (wd > 0 && m_node_mgr_ptr)
 	{
 		m_node_mgr_ptr->insert_file_node(fd, parent_wd, wd, full_path.c_str());
@@ -214,9 +230,11 @@ int CMonitorFileSystem::add_watch(int fd, const std::string& full_path, int pare
 
 MonitorStatus CMonitorFileSystem::start()
 {
+	WRITE_INFO_LOG("监控文件启动....");
     int epfd = epoll_create(1000000);
 	if (epfd < 0)
 	{
+		WRITE_ERROR_LOG("创建epoll句柄失败,失败信息[%s]", strerror(errno));
 		//todo 打印日志
 		return MonitorStatus::EN_MONITOR_ERROR;
 	}
@@ -251,6 +269,8 @@ MonitorStatus CMonitorFileSystem::start()
 				break;
 			}
 		}
+		std::cout << vec_evt.size() << std::endl;
+		std::cout << evt_cnt << std::endl;
 		this->process_event(&vec_evt[0], evt_cnt);
 	}
 	close(epfd);
@@ -272,6 +292,7 @@ unsigned int CMonitorFileSystem::process_epoll_fd(int& epfd)
 		{
 			int fd = *it;
 			evt.data.fd = fd;
+			std::cout << fd << std::endl;
 			if (epoll_ctl(epfd, EPOLL_CTL_ADD, fd, &evt) >= 0)
 			{
 				join_fd_succees_list.push_front(fd);
@@ -283,6 +304,7 @@ unsigned int CMonitorFileSystem::process_epoll_fd(int& epfd)
 			}
 		}
 	}
+
 	
 	std::list<int> delete_fd_success_fd;
 	{//删除需要删除的监控列表中的fd
@@ -328,7 +350,7 @@ unsigned int CMonitorFileSystem::process_epoll_fd(int& epfd)
 
 void CMonitorFileSystem::process_event(const epoll_event* evt, int evt_cnt)
 {
-	std::list<std::future<void> > list_future;
+	std::list<std::future<bool> > list_future;
 	for (int i = 0; i < evt_cnt; ++i)
 	{//处理有事件发生的文件句柄
 		if (evt[i].events & EPOLLERR)
@@ -339,8 +361,7 @@ void CMonitorFileSystem::process_event(const epoll_event* evt, int evt_cnt)
 
 		if (evt[i].events & EPOLLIN)
 		{//有读事件产生 异步执行
-			list_future.push_back(std::async(std::launch::async, 
-							std::bind(&CMonitorFileSystem::process_fd_data, this, std::placeholders::_1), evt[i].data.fd));		
+			list_future.push_back(std::async(std::bind(&CMonitorFileSystem::process_fd_data, this, evt[i].data.fd)));		
 		}
 	}
 
@@ -349,20 +370,21 @@ void CMonitorFileSystem::process_event(const epoll_event* evt, int evt_cnt)
 	{
 		fut.wait();
 	}
+	
 }
 
 
 
-void CMonitorFileSystem::process_fd_data(int fd)
+bool CMonitorFileSystem::process_fd_data(int fd)
 {
 	int queue_size = 0;
 	if (ioctl(fd, FIONREAD, &queue_size) < 0)
 	{//fd管理的文件对象没有数据可以读 直接返回
-		return;
+		return false;
 	}
 	std::vector<char> vec_buf(queue_size, '\0');
 	size_t len = read(fd, &vec_buf[0], queue_size);
-	if (len == 0xffffffff)
+	if (len == -1)
 	{//
 		if (errno == EAGAIN)
 		{//没有数据准备好
@@ -393,6 +415,8 @@ void CMonitorFileSystem::process_fd_data(int fd)
 			start += sizeof(inotify_event) + inotify_evt->len;
 		}
 	}
+
+	return true;
 }
 
 

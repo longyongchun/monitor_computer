@@ -122,7 +122,7 @@ bool CIniFileParse::get_section(const std::string& line_data, std::string& secti
 
 bool CIniFileParse::get_key_value(const std::string& line_data, std::string& key, std::string& value)const
 {
-	static const std::regex pattern("(\\w*)\\s*=\\s*(\\w*)");
+	static const std::regex pattern("(\\w*)\\s*=\\s*(\[^;]*)");
 	std::cmatch result;
 	bool search_result = std::regex_search(line_data.c_str(), result, pattern);
 	if (search_result)
