@@ -26,7 +26,7 @@
 #include <functional>
 #include <errno.h>
 #include <string.h>
-#include "../log_system/LogManagerSystem.h"
+#include "../../public/log_system/LogManagerSystem.h"
 #include "../thread_pool/ThreadPool.h"
 
 CNetworkService::CNetworkService()

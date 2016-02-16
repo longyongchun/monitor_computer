@@ -14,7 +14,7 @@
 ///
 /// ****************************************************************************
 #include "Business.h"
-#include "log_system/LogManagerSystem.h"
+#include "../public/log_system/LogManagerSystem.h"
 int main()
 {
 	WRITE_ERROR_LOG("this is a %s", "test");

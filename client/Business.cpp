@@ -17,7 +17,7 @@
 #include <thread>
 #include <chrono>
 #include "MonitorFileSystemBusiness.h"
-#include "network/NetworkServiceBusiness.h"
+#include "NetworkServiceBusiness.h"
 #include "config/GolabConfig.h"
 CBusiness::CBusiness()
 {

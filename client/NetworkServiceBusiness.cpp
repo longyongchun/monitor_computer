@@ -15,18 +15,24 @@
 /// ****************************************************************************
 
 #include "NetworkServiceBusiness.h"
-#include "NetworkService.h"
+#include "network/NetworkService.h"
 #include <thread>
-#include "../thread_pool/ThreadPoolFactory.h"
-#include "../thread_pool/ThreadPool.h"
-#include "../data_queue/MonitorFileSystemDataQueue.h"
-#include "../NetworkPack.h"
-
+#include "thread_pool/ThreadPoolFactory.h"
+#include "thread_pool/ThreadPool.h"
+#include "data_queue/MonitorFileSystemDataQueue.h"
+#include "NetworkPack.h"
+#include "../public/level/MonitorDataStore.h"
+#include "../public/log_system/LogManagerSystem.h"
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/lexical_cast.hpp>
+#include "../public/level/MonitorDataStore.h"
 CNetworkServiceBusiness::CNetworkServiceBusiness()
 		:m_node_mgr_tag("Network_Business_Node_Mgr"),
 		m_node_tag("Network_Business_Node")
 {
 	m_net_service.reset(new (std::nothrow)CNetworkService());
+	m_mon_data_store.reset(new (std::nothrow)CMonitorDataStore());
 }
 
 CNetworkServiceBusiness::~CNetworkServiceBusiness()
@@ -36,6 +42,11 @@ CNetworkServiceBusiness::~CNetworkServiceBusiness()
 
 unsigned int CNetworkServiceBusiness::init()
 {
+	if (m_mon_data_store)
+	{
+		m_mon_data_store->init("test");
+	}
+
 	if (m_net_service)
 	{
 		unsigned int result = m_net_service->init();
@@ -109,13 +120,31 @@ int CNetworkServiceBusiness::send_data_task(unsigned int conn_id)
 			int network_data_len = this->build_monitor_network_data(network_data, sizeof(network_data), mon_pack);
 			if (network_data_len >= sizeof(NetworkHeadPack))
 			{//发送的数据最小单位为一个包头
-				m_net_service->send_data(conn_id, network_data, network_data_len);
+				if (m_net_service->send_data(conn_id, network_data, network_data_len) == 0xffffffff)
+				{//发送网络包失败
+					WRITE_ERROR_LOG("发送网络包失败,长度为[%d]", network_data_len);
+					//写leveldb
+					m_mon_data_store->put(this->get_leveldb_key(mon_pack).c_str(), network_data, network_data_len);					
+				}
 			}
 		}
 	}
 	return result;
 }
 
+std::string CNetworkServiceBusiness::get_leveldb_key(const std::shared_ptr<MonitorDataPack>& data_pack)const
+{
+	static boost::uuids::random_generator rgn;
+	//生成唯一标识码
+	boost::uuids::uuid u = rgn();
+	//生成的键格式为 mon_data_yyyymmddhhmmss_02d_uuid
+	std::string key(43, '\0');
+	char op_date[15] = {0};
+	memmove(op_date, data_pack->m_op_date, sizeof(data_pack->m_op_date));
+	snprintf(&key[0], key.size(), "mon_data_%s_%02d_%s", op_date, 
+				data_pack->m_head.m_event_id, u.data);
+	return std::move(key);
+}
 
 int CNetworkServiceBusiness::build_monitor_network_data(char* buf, unsigned int buf_len, const std::shared_ptr<MonitorDataPack>& data_pack)const
 {

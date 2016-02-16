@@ -37,7 +37,7 @@
 #include "thread_pool/ThreadPool.h"
 #include "data_queue/MonitorFileSystemDataQueue.h"
 #include <future>
-#include "log_system/LogManagerSystem.h"
+#include "../public/log_system/LogManagerSystem.h"
 #include <errno.h>
 #include <string.h>
 CMonitorFileSystem::CMonitorFileSystem()
